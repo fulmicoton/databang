@@ -1,0 +1,40 @@
+#!//anaconda/bin/python
+
+import sys
+import subprocess
+import requests
+import config
+import json
+
+    
+API_URL = "http://" + config.HOSTNAME + ":" + str(config.PORT) + "/api/"
+TASKS_URL = API_URL + "tasks"
+
+print sys.argv[0]
+print sys.path
+payload = sys.stdin.read()
+open("/Users/paul/last_payload.txt", "w").write(payload)
+(_, hash_rev, _) = payload.strip().split(" ")
+
+
+def get_commit_info(hash_rev):
+    output = subprocess.check_output(["git", "show", "--quiet", hash_rev, "--format=format:%an|%B"]).strip()
+    (author, commit_msg) = output.split("|", 1)
+    return (author, commit_msg)
+
+
+def push_task(hash_rev, author, commit_msg,):
+    payload = {
+        "hash_rev": hash_rev,
+        "author": author,
+        "commit_msg": commit_msg
+    }
+    headers = {'content-type': 'application/json'}
+    print requests.post(TASKS_URL, data=json.dumps(payload), headers=headers).text
+
+
+(author, commit_msg) = get_commit_info(hash_rev)
+print author, commit_msg
+if "BANG" in commit_msg:
+    # submit it to the server
+    push_task(hash_rev, author, commit_msg)
